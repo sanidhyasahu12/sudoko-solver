@@ -1,174 +1,104 @@
-# sudoko-solver
+ # suduko solver 
 
+ #include <iostream>
+using namespace std;
 
-#include <iostream>
+const int N = 9;
 
-class SudokuPuzzle {
-private:
-    int board[9][9];
-    bool debug;
-
-public:
-    SudokuPuzzle() {
-        debug = false;
-        for (int y = 0; y < 9; y++) {
-            for (int x = 0; x < 9; x++) {
-                board[x][y] = 0;
-            }
+// Function to print the Sudoku grid
+void printGrid(int grid[N][N]) {
+    for (int row = 0; row < N; row++) {
+        for (int col = 0; col < N; col++) {
+            cout << grid[row][col] << " ";
         }
+        cout << endl;
     }
+}
 
-    void print() {
-        for (int y = 0; y < 9; y++) {
-            if (y % 3 == 0) {
-                std::cout << "-------------------------------" << std::endl;
-            }
-            for (int x = 0; x < 9; x++) {
-                if (x % 3 == 0) {
-                    std::cout << "|";
-                }
-                if (board[x][y] != 0) {
-                    std::cout << " " << board[x][y] << " ";
-                } else {
-                    std::cout << " . ";
-                }
-            }
-            std::cout << "|" << std::endl;
-        }
-        std::cout << "-------------------------------" << std::endl;
-    }
-
-    void setBoardValue(int x_cord, int y_cord, int value) {
-        board[x_cord][y_cord] = value;
-    }
-
-    bool solve() {
-        return solve(0, 0);
-    }
-
-    int getBoardValue(int x_cord, int y_cord) {
-        return board[x_cord][y_cord];
-    }
-
-private:
-    bool solve(int x_cord, int y_cord) {
-        if (board[x_cord][y_cord] != 0) {
-            if (verifyValue(x_cord, y_cord)) {
-                if (x_cord == 8 && y_cord == 8) {
-                    return true;
-                }
-                int next_x = x_cord + 1;
-                int next_y = y_cord;
-                if (next_x >= 9) {
-                    next_x = 0;
-                    next_y++;
-                }
-                return solve(next_x, next_y);
-            } else {
-                return false;
-            }
-        } else {
-            for (int val = 1; val <= 9; val++) {
-                setBoardValue(x_cord, y_cord, val);
-                if (verifyValue(x_cord, y_cord)) {
-                    if (x_cord == 8 && y_cord == 8) {
-                        return true;
-                    }
-                    int next_x = x_cord + 1;
-                    int next_y = y_cord;
-                    if (next_x >= 9) {
-                        next_x = 0;
-                        next_y++;
-                    }
-                    if (solve(next_x, next_y)) {
-                        return true;
-                    }
-                }
-            }
-            board[x_cord][y_cord] = 0;
+// Function to check if a number can be placed in a cell
+bool isSafe(int grid[N][N], int row, int col, int num) {
+    // Check if 'num' is not already present in the current row and column
+    for (int x = 0; x < N; x++) {
+        if (grid[row][x] == num || grid[x][col] == num) {
             return false;
         }
     }
 
-    bool verifyValue(int x_cord, int y_cord) {
-        int value = board[x_cord][y_cord];
-        for (int x_verify = 0; x_verify < 9; x_verify++) {
-            if (x_verify == x_cord) {
-                continue;
-            }
-            int verifyValue = board[x_verify][y_cord];
-            if (verifyValue == value) {
+    // Check if 'num' is not already present in the current 3x3 subgrid
+    int startRow = row - row % 3;
+    int startCol = col - col % 3;
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
+            if (grid[i + startRow][j + startCol] == num) {
                 return false;
             }
         }
-        for (int y_verify = 0; y_verify < 9; y_verify++) {
-            if (y_verify == y_cord) {
-                continue;
-            }
-            int verifyValue = board[x_cord][y_verify];
-            if (verifyValue == value) {
-                return false;
-            }
-        }
-        int box_x = x_cord / 3;
-        int box_y = y_cord / 3;
-        for (int y_verify = box_y * 3; y_verify < box_y * 3 + 3; y_verify++) {
-            for (int x_verify = box_x * 3; x_verify < box_x * 3 + 3; x_verify++) {
-                if (x_verify == x_cord && y_verify == y_cord) {
-                    continue;
-                }
-                int verifyValue = board[x_verify][y_verify];
-                if (verifyValue == value) {
-                    return false;
-                }
+    }
+
+    return true;
+}
+
+// Function to solve the Sudoku puzzle using backtracking
+bool solveSudoku(int grid[N][N]) {
+    int row, col;
+
+    // Find the first empty cell in the grid
+    bool isEmpty = false;
+    for (row = 0; row < N; row++) {
+        for (col = 0; col < N; col++) {
+            if (grid[row][col] == 0) {
+                isEmpty = true;
+                break;
             }
         }
+        if (isEmpty) {
+            break;
+        }
+    }
+
+    // If no empty cell is found, the Sudoku puzzle is solved
+    if (!isEmpty) {
         return true;
     }
-};
+
+    // Try filling the empty cell with numbers from 1 to 9
+    for (int num = 1; num <= 9; num++) {
+        if (isSafe(grid, row, col, num)) {
+            // Place the number in the cell
+            grid[row][col] = num;
+
+            // Recursively solve the rest of the puzzle
+            if (solveSudoku(grid)) {
+                return true;
+            }
+
+            // If no solution is found with this number, backtrack
+            grid[row][col] = 0;
+        }
+    }
+
+    // If no number can be placed in this cell, return false
+    return false;
+}
 
 int main() {
-    SudokuPuzzle puzzle;
+    int initialGrid[N][N] = {
+        {5, 3, 0, 0, 7, 0, 0, 0, 0},
+        {6, 0, 0, 1, 9, 5, 0, 0, 0},
+        {0, 9, 8, 0, 0, 0, 0, 6, 0},
+        {8, 0, 0, 0, 6, 0, 0, 0, 3},
+        {4, 0, 0, 8, 0, 3, 0, 0, 1},
+        {7, 0, 0, 0, 2, 0, 0, 0, 6},
+        {0, 6, 0, 0, 0, 0, 2, 8, 0},
+        {0, 0, 0, 4, 1, 9, 0, 0, 5},
+        {0, 0, 0, 0, 8, 0, 0, 7, 9}
+    };
 
-    // Example Sudoku puzzle (replace with your own)
-    puzzle.setBoardValue(0, 0, 5);
-    puzzle.setBoardValue(1, 0, 3);
-    puzzle.setBoardValue(4, 0, 7);
-    puzzle.setBoardValue(0, 1, 6);
-    puzzle.setBoardValue(3, 1, 1);
-    puzzle.setBoardValue(4, 1, 9);
-    puzzle.setBoardValue(5, 1, 5);
-    puzzle.setBoardValue(1, 2, 9);
-    puzzle.setBoardValue(2, 2, 8);
-    puzzle.setBoardValue(7, 2, 6);
-    puzzle.setBoardValue(0, 3, 8);
-    puzzle.setBoardValue(4, 3, 6);
-    puzzle.setBoardValue(8, 3, 3);
-    puzzle.setBoardValue(0, 4, 4);
-    puzzle.setBoardValue(3, 4, 8);
-    puzzle.setBoardValue(5, 4, 3);
-    puzzle.setBoardValue(8, 4, 1);
-    puzzle.setBoardValue(0, 5, 7);
-    puzzle.setBoardValue(4, 5, 2);
-    puzzle.setBoardValue(8, 5, 6);
-    puzzle.setBoardValue(1, 6, 6);
-    puzzle.setBoardValue(6, 6, 2);
-    puzzle.setBoardValue(7, 6, 8);
-    puzzle.setBoardValue(3, 7, 4);
-    puzzle.setBoardValue(4, 7, 1);
-    puzzle.setBoardValue(5, 7, 9);
-    puzzle.setBoardValue(4, 8, 8);
-    puzzle.setBoardValue(7, 8, 5);
-    puzzle.setBoardValue(8, 8, 7);
-
-    std::cout << "Sudoku Puzzle:" << std::endl;
-    puzzle.print();
-
-    if (puzzle.solve()) {
-        std::cout << "Solved Sudoku:" << std::endl;
-        puzzle.print();
+    if (solveSudoku(initialGrid)) {
+        cout << "Solved Sudoku:" << endl;
+        printGrid(initialGrid);
     } else {
-        std::cout << "No solution exists." << std::endl;
+        cout << "No solution exists!" << endl;
     }
 
     return 0;
